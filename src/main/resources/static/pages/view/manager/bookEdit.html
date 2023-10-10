@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8">
+		<title>编辑作品</title>
+		<link rel="stylesheet" href="../../component/pear/css/pear.css" />
+		<link rel="stylesheet" href="../../component/element-ui/index.css">
+		<link rel="stylesheet" href="../../component/common/css/nmMain.css">
+	</head>
+
+	<body class="pear-container">
+		<div class="layui-card" id="app" style="padding: 30px;min-height: calc( 100vh - 40px );">
+
+			<div class="padding-10" style="background-color: #2d8cf0;color: white;">
+				<el-page-header  @back="goBack" content="编辑作品" ></el-page-header>
+			</div>
+			<el-row :gutter="20">
+				<el-col :span="12">
+					<el-form :model="bookData" :rules="bookRules" ref="bookData" label-width="120px" style="margin-top: 30px;">
+						<el-form-item label-position="left" placeholder="请输入作品名称"  prop="title" label="作品名称">
+							<el-input v-model="bookData.title"></el-input>
+						</el-form-item>
+						<el-form-item label-position="left" prop="gid"  label="作品分类">
+							<el-select v-model="bookData.gid" clearable filterable placeholder="请选择作品分类">
+								<el-option
+										v-for="item in typeList"
+										:key="item.groupName"
+										:label="item.groupName"
+										:value="item.id">
+								</el-option>
+							</el-select>
+						</el-form-item>
+						<el-form-item label-position="left" prop="memo" placeholder="请输入作品简介" label="作品简介" label-width="120px">
+							<el-input type="textarea" :autosize="{ minRows: 3, maxRows: 6}" v-model="bookData.memo" autocomplete="off"></el-input>
+						</el-form-item>
+
+						<el-form-item label-position="left" label="作品图片" label-width="120px">
+							<div style="display: flex;justify-content: flex-start;">
+								<div style="margin-right: 50px;">
+									<el-image :preview-src-list="[getPicUrl(bookData.pic)]" :src="getPicUrl(bookData.pic)" style="width: 100px; height: 100px;box-shadow: 1px 1px 5px rgba(0,0,0,0.1)">
+										<div slot="error" class="image-slot">
+											<i class="el-icon-picture-outline" style="font-size: 100px;"></i>
+										</div>
+									</el-image>
+									<div style="display: flex;justify-content: space-between;">
+										<div style="text-align: center;">封面图</div>
+										<div @click="editPic(bookData,'')" style="text-align: center;color: #63a35c;">修改</div>
+									</div>
+
+								</div>
+								<div>
+									<el-image :preview-src-list="[getPicUrl(bookData.pic2)]" :src="getPicUrl(bookData.pic2)"  style=" width: 100px; height: 100px;box-shadow: 1px 1px 5px rgba(0,0,0,0.1)">
+										<div slot="error" class="image-slot">
+											<i class="el-icon-picture-outline" style="font-size: 100px;"></i>
+										</div>
+									</el-image>
+									<div style="display: flex;justify-content: space-between;">
+										<div style="text-align: center;">简介图</div>
+										<div @click="editPic(bookData,2)" style="text-align: center;color: #63a35c;">修改</div>
+									</div>
+								</div>
+							</div>
+						</el-form-item>
+
+						<el-form-item>
+							<el-button type="primary" @click="submitForm('bookData')">提交</el-button>
+						</el-form-item>
+
+					</el-form>
+				</el-col>
+				<el-col :span="12" >
+					<div v-if="bookData.id" style="min-height: calc( 100vh - 40px );border-left: 1px solid #2d8cf0;">
+						<div class="v-flex v-r-between padding-20">
+							<div class="text-blue">章节列表</div>
+							<div>
+								<el-button size="medium" @click="addChapter" type="success">新增</el-button>
+							</div>
+						</div>
+						<div class="padding-20">
+							<el-table
+									:data="chapterList"
+									stripe
+									style="width: 100%">
+								<el-table-column
+										prop="title"
+										label="章节名称"
+										width="150">
+								</el-table-column>
+								<el-table-column
+										prop="memo"
+										label="简介"
+										width="150">
+									<template slot-scope="scope">
+										<div class="text-ellipsis-2">{{scope.row.memo}}</div>
+									</template>
+								</el-table-column>
+								<el-table-column
+										prop="voice"
+										label="音频"
+										width="100">
+									<template slot-scope="scope">
+										<div class="text-blue">{{scope.row.voice?'有':'无'}}</div>
+									</template>
+								</el-table-column>
+								<el-table-column
+										prop="content"
+										label="正文">
+									<template slot-scope="scope">
+										<div class="text-ellipsis-2">{{scope.row.content}}</div>
+									</template>
+								</el-table-column>
+								<el-table-column
+										prop="state"
+										label="状态"
+										width="100">
+								</el-table-column>
+								<el-table-column
+										fixed="right"
+										label="操作"
+										width="100">
+									<template slot-scope="scope">
+										<el-button @click="showData(scope.row)" type="text" size="small">编辑</el-button>
+										<el-button @click="delData(scope.row)" type="text" size="small">删除</el-button>
+									</template>
+								</el-table-column>
+							</el-table>
+						</div>
+					</div>
+				</el-col>
+			</el-row>
+
+			<el-dialog title="章节信息" :visible.sync="showChapter">
+				<el-form :model="chapterData" :rules="chapterRules" ref="chapterData">
+					<el-form-item prop="title" label="章节标题" label-width="120px">
+						<el-input placeholder="请输入章节标题" v-model="chapterData.title" autocomplete="off"></el-input>
+					</el-form-item>
+					<el-form-item prop="memo" label="章节简介" label-width="120px">
+						<el-input placeholder="请输入章节简介" type="textarea" :autosize="{ minRows: 3, maxRows: 6}" v-model="chapterData.memo" autocomplete="off"></el-input>
+					</el-form-item>
+					<el-form-item label="听书说明" label-width="120px">
+						<div class="text-gray">听书需要音频文件或者文章原文，可上传原文转化为语音朗读，或者直接上传音频文件，两者至少要包含一种，否则无法听书</div>
+					</el-form-item>
+					<el-form-item label="录入原文" label-width="120px">
+						<el-input placeholder="请输入章节原文" type="textarea" :autosize="{ minRows: 5, maxRows: 10}" v-model="chapterData.content" autocomplete="off"></el-input>
+					</el-form-item>
+
+					<el-form-item label="导入原文" label-width="120px">
+
+						<el-upload
+								class="upload-demo"
+								:show-file-list="false"
+								:before-upload="readText"
+								:multiple="false"
+								accept="text/plain"
+								:limit="1">
+							<el-button size="small" type="primary">点击导入</el-button>
+							<div slot="tip" class="el-upload__tip">只能导入txt文件，文件仅用于读取原文，不会上传至服务器，建议文件大小不超过3M</div>
+						</el-upload>
+
+					</el-form-item>
+
+					<el-form-item label="听书音频" label-width="120px">
+						<el-upload
+								class="upload-demo"
+								:action="uploadUrl"
+								accept="audio/*"
+								:on-success="uploadRes"
+								:on-remove="removeFile"
+								:multiple="false"
+								name="file"
+								:data="user"
+								:limit="1"
+								:file-list="fileList">
+							<el-button size="small" type="primary">点击上传</el-button>
+							<div slot="tip" class="el-upload__tip">只能上传mp3、wav、ogg文件，其他音频文件无法播放，文件大小不建议超过50M</div>
+						</el-upload>
+					</el-form-item>
+
+				</el-form>
+				<div slot="footer" class="dialog-footer">
+					<el-button @click="showChapter = false;">取 消</el-button>
+					<el-button type="primary" @click="editData('chapterData')">确 定</el-button>
+				</div>
+			</el-dialog>
+		</div>
+
+		<script src="../../component/vue/vue.js"></script>
+		<script src="../../component/element-ui/index.js"></script>
+		<script src="../../component/axios/axios.min.js"></script>
+		<!--引入Javascript API GL，参数说明参见下文-->
+		<script src="https://map.qq.com/api/gljs?v=1.exp&key=OB4BZ-D4W3U-B7VVO-4PJWW-6TKDJ-WPB77"></script>
+		<script>
+			var map;
+		</script>
+		<script type="module">
+
+			import common from "../../component/common/commonData.js";
+			
+			var app = new Vue({
+				el: '#app',
+				data: function() {
+					return {
+						user:'',
+						typeList:[],
+						selId:114514,
+						bookData:{
+							title:"",
+							state:0,
+							gid:"",
+							memo:"",
+							pic:"",
+							type:0,
+							pic1Str:'',
+							pic2:"",
+							pic2Str:'',
+							push:0
+						},
+						chapterList:[],
+						bookRules:{
+							title:[
+								{ required: true, message: '请输入作品名称', trigger: 'blur' }
+							],
+							gid:[
+								{ required: true, message: '请选择作品分类', trigger: 'blur' }
+							],
+							memo:[
+								{ required: true, message: '请输入作品简介', trigger: 'blur' }
+							]
+						},chapterData:{
+							title:"",
+							memo:"",
+							content:"",
+							voice:"",
+							state:0
+						},chapterRules:{
+							title:[
+								{ required: true, message: '请输入章节名称', trigger: 'blur' }
+							],
+							memo:[
+								{ required: true, message: '请输入章节简介', trigger: 'blur' }
+							]
+						},
+						showChapter:false,
+						fileList:[],
+						fileName:"",
+						uploadUrl:common.urlMap.uploadFile,
+					};
+				},
+				mounted() {
+
+				},
+				methods: {
+					onShow(){
+						
+					},onLoad(){
+						this.user = common.getUserInfo();
+						if(!this.user){
+							location.href = '/NmBook/static/pages/catBook.html'
+						}
+						this.getGroupList();
+						let bid = common.getUrlParam("id");
+						if(bid){
+							this.getBookData(bid);
+						}
+					},onSubmit(){
+						this.getData();
+					},goBack(){
+						window.location.href="javascript:history.go(-1)";
+					},
+					getBookData(bid){
+						let _this = this;
+						common.request({
+							data: {
+								validFlag:1,
+								id:bid
+							},
+							url: common.urlMap.findNmBook,
+							success: function(res) {
+								if(res.data.code == 200){
+									_this.bookData = res.data.data;
+									_this.getChapterList();
+								}else {
+									common.err(res.data.msg);
+								}
+							},
+							fail: function(res) {
+								common.err("网络异常");
+							}
+						})
+					},getChapterList(){
+						let _this = this;
+						common.request({
+							data: {
+								validFlag:1,
+								bid:this.bookData.id
+							},
+							url: common.urlMap.findNmBookChapterList,
+							success: function(res) {
+								if(res.data.code == 200){
+									_this.chapterList = res.data.data;
+								}else {
+									common.err(res.data.msg);
+								}
+							},
+							fail: function(res) {
+								common.err("网络异常");
+							}
+						})
+					},
+					getGroupList(){
+						let _this = this;
+						common.request({
+							data: {
+								validFlag:1
+							},
+							url: common.urlMap.findNmBookGroupList,
+							success: function(res) {
+								if(res.data.code == 200){
+									_this.typeList = res.data.data;
+								}else {
+									common.err(res.data.msg);
+								}
+							},
+							fail: function(res) {
+								common.err("网络异常");
+							}
+						})
+					},showData(data){
+						this.chapterData = data;
+						if(this.chapterData.voice){
+							let voice = this.chapterData.voice;
+							this.fileList = [{
+								name: voice,
+								url: common.urlMap.getAudio+voice
+							}];
+							this.fileName = voice;
+						}
+						this.showChapter = true;
+					},
+					delData(data){
+						this.chapterData = data;
+						this.chapterData.validFlag = 0;
+						this.submitChapter();
+					},
+					submitForm(formName){
+						let _this = this;
+						this.$refs[formName].validate((valid) => {
+							if (valid) {
+
+								if(!_this.bookData.pic){
+									common.err("请上传封面图");
+									return;
+								}
+								if(!_this.bookData.pic2){
+									common.err("请上传简介图图");
+									return;
+								}
+								_this.submitBook();
+
+							} else {
+								console.log('error submit!!');
+								return false;
+							}
+						});
+					},
+					submitBook(){
+						let _this = this;
+						let url = this.bookData.id ? common.urlMap.editNmBook : common.urlMap.addNmBook;
+						common.request({
+							data: this.bookData,
+							url: url,
+							success: function(res) {
+								if(res.data.code == 200){
+									_this.bookData = res.data.data;
+									common.msg(res.data.msg);
+								}else {
+									common.err(res.data.msg);
+								}
+							},
+							fail: function(res) {
+								common.err("网络异常");
+							}
+						})
+					},
+					addChapter(){
+						this.chapterData = {
+							title:"",
+							state:0,
+							memo:"",
+							voice:"",
+							content:"",
+							bid:this.bookData.id
+						}
+						this.fileList = [];
+						this.fileName = "";
+						this.showChapter = true;
+					},
+					editData(formName){
+						let _this = this;
+						this.$refs[formName].validate((valid) => {
+							if (valid) {
+
+								if(!_this.chapterData.content && !_this.chapterData.voice){
+									common.err("原文和音频至少需要上传一个，否则无法听书");
+									return;
+								}
+								_this.submitChapter();
+
+							} else {
+								console.log('error submit!!');
+								return false;
+							}
+						});
+					},
+					submitChapter(){
+						let _this = this;
+						let url = this.chapterData.id ? common.urlMap.editNmBookChapter : common.urlMap.addNmBookChapter;
+						common.request({
+							data: this.chapterData,
+							url: url,
+							success: function(res) {
+								if(res.data.code == 200){
+									_this.chapterData = res.data.data;
+									_this.showChapter = false;
+									_this.getChapterList();
+									common.msg(res.data.msg);
+								}else {
+									common.err(res.data.msg);
+								}
+							},
+							fail: function(res) {
+								common.err("网络异常");
+							}
+						})
+					},
+					uploadRes(response, file, fileList){
+						if(response.code == 200){
+							this.chapterData.voice = response.data;
+							common.success("上传成功");
+						}else{
+							common.err("上传失败");
+						}
+					},
+					removeFile(file, fileList){
+						this.fileList = [];
+						this.chapterData.voice = ""
+					}
+					,getPicUrl(pic){
+						if(pic.length<100){
+							return common.urlMap.getPic+pic;
+						}else{
+							return pic;
+						}
+					},editPic(data,index){
+						this.createInput(index);
+					},
+					createInput(index){
+						let _this = this;
+						var input = document.createElement('input');
+						input.type = 'file';
+						input.setAttribute("accept", "image/*,.png,.jpg,.jpeg,.bmp"); //仅能选择图片
+						input.id = "hidden-input-file";
+						input.style.display = "none";
+						input.onchange = function() {
+							var file = this.files[0];
+							var reader = new FileReader();
+							reader.readAsDataURL(file);
+							reader.onload = function(e) {
+								var data = e.target.result;
+
+								function dealImage(base64, w, size, callback,quality){
+									var newImage = new Image();
+									var picSize = base64.length / 1024;
+									quality = quality || 0.85; //压缩系数0-1之间
+									size = size || 512;
+									//根据图片大小调整压缩比
+									if(picSize<size/3){
+										callback(base64);
+										return;
+									}else if(picSize>6144){
+										quality = 0.7;
+									}
+									newImage.src = base64;
+									newImage.setAttribute("crossOrigin", 'Anonymous'); //url为外域时需要
+									var imgWidth, imgHeight;
+									newImage.onload = function() {
+										imgWidth = this.width;
+										imgHeight = this.height;
+										var canvas = document.createElement("canvas");
+										var ctx = canvas.getContext("2d");
+										if (Math.max(imgWidth, imgHeight) > w) {
+											if (imgWidth > imgHeight) {
+												canvas.width = w;
+												canvas.height = w * imgHeight / imgWidth;
+											} else {
+												canvas.height = w;
+												canvas.width = w * imgWidth / imgHeight;
+											}
+										} else {
+											canvas.width = imgWidth;
+											canvas.height = imgHeight;
+										}
+										ctx.clearRect(0, 0, canvas.width, canvas.height);
+										ctx.drawImage(this, 0, 0, canvas.width, canvas.height);
+										var base64 = canvas.toDataURL("image/jpeg", quality); //绘制压缩,修改格式需注意，png格式不能用此方式压缩
+										// 如想确保图片压缩到自己想要的尺寸,如要求在50-150kb之间，请加以下语句，quality初始值根据情况自定
+										while (base64.length / 1024 > size) {
+											quality -= 0.05;
+											base64 = canvas.toDataURL("image/jpeg", quality);
+										}
+										callback(base64); //必须通过回调函数返回，否则无法及时拿到该值
+									}
+								}
+
+								dealImage(data, 1440, 1560, function(base64) {
+									_this.bookData['pic'+index] = base64;
+									_this.$forceUpdate();
+								})
+
+							};
+						};
+						input.click();
+					},readText(file){
+						let _this = this;
+						var reader = new FileReader();
+						reader.readAsText(file, "UTF-8");
+						reader.onload = function (e) {
+							_this.chapterData.content = e.target.result;
+							common.msg("导入成功")
+						}
+						return false;
+					}
+				}
+			});
+
+			window.onpageshow = app.onShow();
+			window.onload = app.onLoad();
+		</script>
+
+		<style>
+			.main-view {
+				padding: 10px;
+			}
+			.long-text {
+				overflow:hidden;              //超出盒子宽度内容，便溢出隐藏
+				text-overflow:ellipsis;       //用...省略号显示
+				display:-webkit-box;          //将对象作为弹性伸缩盒子模型显示
+				-webkit-box-orient:vertical;  //从上到下垂直排列子元素
+				-webkit-line-clamp:3;
+				height: 100px;
+				width: 200px;
+			}
+			#mapContainer{
+				 /*地图(容器)显示大小*/
+				 width:800px;
+				 height:400px;
+			 }
+			.el-page-header__content{
+				color: white;
+			}
+		</style>
+	</body>
+
+</html>

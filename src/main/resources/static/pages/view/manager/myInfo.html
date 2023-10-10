@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8">
+		<title>个人中心</title>
+		<link rel="stylesheet" href="../../component/pear/css/pear.css" />
+		<link rel="stylesheet" href="../../component/element-ui/index.css">
+		<link rel="stylesheet" href="../../component/common/css/nmMain.css">
+	</head>
+
+	<body class="pear-container">
+		<div class="layui-card padding-20" id="app" style="min-height: calc( 100vh - 40px );">
+			<div class="padding-10" style="background-color: #2d8cf0;color: white;">
+				<el-page-header  @back="goBack" content="个人中心" ></el-page-header>
+			</div>
+			<div>
+				<div class="v-flex v-r-between padding-10 margin-t view-shadow margin-b">
+					<div class="v-flex v-r-left">
+						<el-avatar :src="'/NmBook/static/img/'+(user?'nuoMi.png':'unknow.png')"></el-avatar>
+						<div>
+							<div v-if="user" class="text-shadow text-blue" style="padding-left: 15px;">{{user.nickName}}</div>
+							<div v-if="user" class="text-shadow text-green text-12" style="padding-left: 15px;">{{ getUserType(user.type) }}</div>
+						</div>
+					</div>
+					<div style="line-height: 40px;">
+						<div v-if="user.type==2" @click="toBookManager" class="text-shadow text-blue text-15 hover-green" >作品管理</div>
+					</div>
+					<div style="line-height: 40px;">
+						<div v-if="user.type==1" @click="toManager" class="text-shadow text-blue text-15 hover-green" >管理中心</div>
+					</div>
+					<div style="line-height: 40px;">
+						<div v-if="user.type==3 && userItem.allHis.length>9" class="text-shadow text-gray text-12" >已听书满10次，待管理员审核为作者</div>
+					</div>
+				</div>
+			</div>
+			<el-row :gutter="20" style="padding-top: 15px;margin-top: 10px;">
+				<el-col :span="6" style="border-right: #2d8cf0 1px solid;min-height: calc( 100vh - 150px );">
+					<div class=" text-bold text-blue padding-15">
+						作品收藏
+					</div>
+					<div>
+						<div v-if="userItem.allCollect.length == 0" class="text-ellipsis text-gray padding-15" >无数据</div>
+						<div @click="listenPage(item.bid)" v-for="item in userItem.allCollect" class="margin-10  v-flex margin-b v-r-between view-shadow view-radius-m padding-15">
+							<div>{{item.bookName}}</div>
+							<div  class="text-ellipsis text-gray">{{item.createTime}}</div>
+						</div>
+					</div>
+				</el-col>
+				<el-col :span="6" style="border-right: #2d8cf0 1px solid;min-height: calc( 100vh - 150px );">
+					<div class="text-bold text-blue padding-15">
+						我的关注
+					</div>
+					<div>
+						<div v-if="userItem.allStar.length == 0" class="text-ellipsis text-gray padding-15" >无数据</div>
+						<div v-for="item in userItem.allStar" class="margin-10 v-flex margin-b v-r-between view-shadow view-radius-m padding-15">
+							<div>{{item.uname}}</div>
+							<div class="text-ellipsis text-gray">{{item.createTime}}</div>
+						</div>
+					</div>
+				</el-col>
+				<el-col :span="6" style="border-right: #2d8cf0 1px solid;min-height: calc( 100vh - 150px );">
+					<div class="text-bold text-blue padding-15">
+						听书记录
+					</div>
+					<div>
+						<div v-if="userItem.allHis.length == 0" class="text-ellipsis text-gray padding-15" >无数据</div>
+						<div @click="listenPage(item.bid)" v-for="item in userItem.allHis" class="margin-10 v-flex margin-b v-r-between view-shadow view-radius-m padding-15">
+							<div>{{item.bookName}}</div>
+							<div class="text-ellipsis text-gray">{{item.createTime}}</div>
+						</div>
+					</div>
+				</el-col>
+				<el-col :span="6">
+					<div class="text-bold text-blue padding-15">
+						我的粉丝
+					</div>
+					<div v-if="userItem.allFans.length == 0" class="text-ellipsis text-gray padding-15" >无数据</div>
+					<div v-for="item in userItem.allFans" class="margin-10 v-flex margin-b v-r-between view-shadow view-radius-m padding-15">
+						<div>{{item.uname}}</div>
+						<div class="text-ellipsis text-gray">{{item.createTime}}</div>
+					</div>
+				</el-col>
+			</el-row>
+
+
+		</div>
+
+		<script src="../../component/vue/vue.js"></script>
+		<script src="../../component/element-ui/index.js"></script>
+		<script src="../../component/axios/axios.min.js"></script>
+		<script type="module">
+
+			import common from "../../component/common/commonData.js";
+			
+			var app = new Vue({
+				el: '#app',
+				data: function() {
+					return {
+						title: "",
+						user:'',
+						userItem:""
+					};
+				},
+				mounted() {
+
+				},
+				methods: {
+					onShow(){
+						
+					},onLoad(){
+						this.user = common.getUserInfo();
+						if(!this.user){
+							location.href = '/NmBook/static/pages/catBook.html'
+						}
+						this.getUserData();
+					},
+					goBack(){
+						window.location.href='/NmBook/static/pages/catBook.html';
+					},getUserData(){
+						let _this = this;
+						common.request({
+							loading:false,
+							url: common.urlMap.getUserData,
+							success: function(res) {
+								if(res.data.code == 200){
+									if(res.data.data){
+										_this.userItem = res.data.data;
+									}
+								}
+							},
+							fail: function(res) {
+								common.err("网络异常");
+							}
+						})
+					},getUserType(type){
+						switch (type) {
+							case 1:
+								return "管理员";
+								break;
+							case 2:
+								return "作者";
+								break;
+							case 3:
+								return "读者";
+								break;
+						}
+					},listenPage(id){
+						window.location.href="bookItem.html?id="+id;
+					},toManager(){
+						window.location.href="/NmBook/static/pages/index.html";
+					},toBookManager(){
+						window.location.href="writerBookManager.html";
+					}
+				}
+			});
+
+			window.onpageshow = app.onShow();
+			window.onload = app.onLoad();
+
+		</script>
+
+		<style>
+			.main-view {
+				padding: 10px;
+			}
+			.long-text {
+				overflow:hidden;              //超出盒子宽度内容，便溢出隐藏
+				text-overflow:ellipsis;       //用...省略号显示
+				display:-webkit-box;          //将对象作为弹性伸缩盒子模型显示
+				-webkit-box-orient:vertical;  //从上到下垂直排列子元素
+				-webkit-line-clamp:3;
+				height: 100px;
+				width: 200px;
+			}
+			#mapContainer{
+				 /*地图(容器)显示大小*/
+				 width:800px;
+				 height:400px;
+			 }
+			.el-page-header__content{
+				color: white;
+			}
+		</style>
+	</body>
+
+</html>

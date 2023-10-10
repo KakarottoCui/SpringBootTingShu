@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8">
+		<title>用户管理</title>
+		<link rel="stylesheet" href="../../component/pear/css/pear.css" />
+		<link rel="stylesheet" href="../../component/element-ui/index.css">
+	</head>
+
+	<body class="pear-container">
+		<div class="layui-card" id="app">
+			<el-container>
+				<el-header class="main-view" height="10vh">
+					<el-form :inline="true"  class="demo-form-inline">
+						<el-form-item label="用户名">
+							<el-input v-model="name" placeholder="用户名"></el-input>
+						</el-form-item>
+						<el-form-item>
+							<el-button type="primary" @click="onSubmit">查询</el-button>
+						</el-form-item>
+					</el-form>
+					
+
+				</el-header>
+				
+				
+				<el-main class="main-view" style="min-height: 87vh;">
+
+					<el-table :data="tableData" style="width: 100%">
+						<el-table-column prop="uid" label="ID" width="100">
+						</el-table-column>
+						<el-table-column prop="nickName" label="用户名" width="150">
+						</el-table-column>
+						<el-table-column prop="type" label="类型" width="120">
+							<template slot-scope="scope">
+								<div>{{scope.row.type == 3 ?"读者" : (scope.row.type == 2 ?"作者":"管理员") }}</div>
+							</template>
+						</el-table-column>
+						<el-table-column prop="age" label="阅读量" >
+						</el-table-column>
+
+						<el-table-column
+								fixed="right"
+								label="操作"
+								width="300">
+							<template slot-scope="scope">
+								<el-button v-if="scope.row.type==3 && scope.row.age>9" @click="update(scope.row)" type="text" size="small">升级为作者</el-button>
+								<el-button v-if="scope.row.type!=1" @click="delUser(scope.row)" type="text" size="small">删除</el-button>
+							</template>
+						</el-table-column>
+					</el-table>
+					
+				</el-main>
+			</el-container>
+
+			<el-dialog title="用户信息" :visible.sync="show">
+				<el-form :model="userView">
+					<el-form-item label="用户名" label-width="120px">
+						<el-input v-model="userView.name" autocomplete="off"></el-input>
+					</el-form-item>
+					<el-form-item label="电话" label-width="120px">
+						<el-input v-model="userView.phone" autocomplete="off"></el-input>
+					</el-form-item>
+					<el-form-item label="地址" label-width="120px">
+						<el-input v-model="userView.address" autocomplete="off"></el-input>
+					</el-form-item>
+				</el-form>
+				<div slot="footer" class="dialog-footer">
+					<el-button @click="show = false">取 消</el-button>
+					<el-button type="primary" @click="editUser">确 定</el-button>
+				</div>
+			</el-dialog>
+
+		</div>
+
+		<script src="../../component/vue/vue.js"></script>
+		<script src="../../component/element-ui/index.js"></script>
+		<script src="../../component/axios/axios.min.js"></script>
+		<script type="module">
+			import common from "../../component/common/commonData.js";
+			
+			var app = new Vue({
+				el: '#app',
+				data: function() {
+					return {
+						name: "",
+						show:false,
+						userView:{},
+						tableData: [],
+						userInfo:{}
+					};
+				},
+				mounted() {
+
+				},
+				methods: {
+					onShow(){
+						
+					},onLoad(){
+						this.user = common.getUserInfo();
+						if(!this.user){
+							location.href = '/NmBook/static/pages/catBook.html'
+						}
+						this.getUser();
+					},onSubmit(){
+
+						this.getUser();
+						
+					},getUser(){
+
+						let _this = this;
+						common.request({
+							loading:false,
+							url: common.urlMap.findSysUserList,
+							data: {
+								validFlag:1
+							},
+							success: function(res) {
+								if(res.data.code == 200){
+									if(res.data.data){
+										_this.tableData = res.data.data;
+									}
+								}
+							},
+							fail: function(res) {
+								common.err("网络异常");
+							}
+						})
+
+					},showUser(row) {
+						this.userView = row;
+						this.show = true;
+					},update(row){
+						this.userView = row;
+						this.userView["type"] = 2;
+						this.editUser();
+					},delUser(row) {
+						this.userView = row;
+						this.userView["validFlag"] = 0;
+						this.editUser();
+					},editUser(){
+						let _this = this;
+						common.request({
+							loading:false,
+							url: common.urlMap.editSysUser,
+							data: _this.userView,
+							success: function(res) {
+								if(res.data.code == 200){
+									common.success(res.data.msg);
+									_this.getUser();
+								}
+							},
+							fail: function(res) {
+								common.err("网络异常");
+							}
+						})
+
+					}
+				}
+			});
+			
+			window.onpageshow = app.onShow();
+			window.onload = app.onLoad();
+		</script>
+		
+		<style>
+			.main-view {
+				padding: 10px;
+			}
+		</style>
+	</body>
+
+</html>

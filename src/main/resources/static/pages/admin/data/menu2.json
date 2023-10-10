@@ -1,0 +1,30 @@
+[{
+		"id": 1,
+		"title": "后台管理",
+		"icon": "layui-icon layui-icon-console",
+		"type": 0,
+		"href": "",
+		"children": [{
+			"id": 10,
+			"title": "数据统计",
+			"icon": "layui-icon layui-icon-console",
+			"type": 1,
+			"openType": "_iframe",
+			"href": "view/manager/console1.html"
+		}, {
+			"id": 13,
+			"title": "商品管理",
+			"icon": "layui-icon layui-icon-console",
+			"type": 1,
+			"openType": "_iframe",
+			"href": "view/manager/goodsManager.html"
+		}, {
+			"id": 14,
+			"title": "订单管理",
+			"icon": "layui-icon layui-icon-console",
+			"type": 1,
+			"openType": "_iframe",
+			"href": "view/manager/orderManager.html"
+		}]
+	}
+]

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8">
+		<title>书库管理</title>
+		<link rel="stylesheet" href="../../component/pear/css/pear.css" />
+		<link rel="stylesheet" href="../../component/element-ui/index.css">
+		<link rel="stylesheet" href="../../component/common/css/nmMain.css">
+	</head>
+
+	<body class="pear-container">
+		<div class="layui-card" id="app">
+			<el-container>
+				<el-header class="main-view" height="10vh">
+					<el-form :inline="true"  class="demo-form-inline">
+						<el-form-item label="图书名称">
+							<el-input v-model="title" placeholder="图书名称"></el-input>
+						</el-form-item>
+						<el-form-item>
+							<el-button type="primary" @click="onSubmit">查询</el-button>
+						</el-form-item>
+						<el-form-item>
+							<el-button type="success" @click="addBook">新增</el-button>
+						</el-form-item>
+					</el-form>
+					
+
+				</el-header>
+				
+				
+				<el-main class="main-view" style="min-height: 87vh;">
+
+					<el-table :stripe="true" :data="tableData" style="width: 100%">
+						<el-table-column prop="id" label="ID" width="80">
+						</el-table-column>
+						<el-table-column prop="title" label="图书名称" width="150">
+							<template slot-scope="scope">
+								<div class="text-ellipsis-2">{{scope.row.title}}</div>
+							</template>
+						</el-table-column>
+						<el-table-column prop="gid" label="图书类别" width="100">
+							<template slot-scope="scope">
+								<div class="text-ellipsis-2">{{getTypeName(scope.row.gid)}}</div>
+							</template>
+						</el-table-column>
+						<el-table-column prop="memo" label="图书简介" width="220">
+							<template slot-scope="scope">
+								<div class="text-ellipsis-2">{{scope.row.memo}}</div>
+							</template>
+						</el-table-column>
+						<el-table-column prop="cname" label="作者" width="100">
+							<template slot-scope="scope">
+								<div class="text-ellipsis-2">{{scope.row.cname}}</div>
+							</template>
+						</el-table-column>
+						<el-table-column prop="pic" label="封面图" width="80">
+							<template slot-scope="scope">
+								<div>
+									<el-image :preview-src-list="[ picPath+scope.row.pic ]" :src="picPath+scope.row.pic" style="width: 80px; height: 80px;box-shadow: 1px 1px 5px rgba(0,0,0,0.1)">
+										<div slot="error" class="image-slot">
+											<i class="el-icon-picture-outline"></i>
+										</div>
+									</el-image>
+								</div>
+							</template>
+						</el-table-column>
+
+						<el-table-column prop="pic2" label="简介图" width="80">
+							<template slot-scope="scope">
+								<div>
+									<el-image :preview-src-list="[ picPath+scope.row.pic2 ]" :src="picPath+scope.row.pic2" style="width: 80px; height: 80px;box-shadow: 1px 1px 5px rgba(0,0,0,0.1)">
+										<div slot="error" class="image-slot">
+											<i class="el-icon-picture-outline"></i>
+										</div>
+									</el-image>
+								</div>
+							</template>
+						</el-table-column>
+
+						<el-table-column prop="state" label="状态" width="60">
+							<template slot-scope="scope">
+								<div class="text-ellipsis-2">{{scope.row.state == 1?'完结':'连载'}}</div>
+							</template>
+						</el-table-column>
+						<el-table-column prop="type" label="审核" width="70">
+							<template slot-scope="scope">
+								<div class="text-ellipsis-2" :class="scope.row.type!=1?'text-red':'text-green'">{{getBookType(scope.row.type)}}</div>
+							</template>
+						</el-table-column>
+<!--						<el-table-column prop="num" label="票价" width="80">-->
+<!--						</el-table-column>-->
+						<el-table-column prop="createTime" label="添加时间" width="180">
+						</el-table-column>
+<!--						<el-table-column prop="creater" label="添加人">-->
+<!--						</el-table-column>-->
+						<el-table-column
+								fixed="right"
+								label="操作"
+								width="250">
+							<template slot-scope="scope">
+								<el-button @click="toEdit(scope.row)" type="text" size="small">编辑</el-button>
+								<el-button @click="changeType(scope.row)" type="text" :class="scope.row.type == 0 ?'text-green':(scope.row.type == 1?'text-red':'')" size="small">{{getBookType(scope.row.type,true)}}</el-button>
+								<el-button @click="delData(scope.row)" type="text" class="text-red" size="small">删除</el-button>
+								<el-button @click="addPush(scope.row)" type="text"  :class="scope.row.push == 1 ? 'text-red':'text-green'" size="small">{{scope.row.push == 1?'取消推荐':'添加推荐'}}</el-button>
+								<el-button @click="changeState(scope.row)" type="text" size="small">{{scope.row.state == 0?'完结':'续更'}}</el-button>
+							</template>
+						</el-table-column>
+					</el-table>
+					
+				</el-main>
+			</el-container>
+
+
+		</div>
+
+		<script src="../../component/vue/vue.js"></script>
+		<script src="../../component/element-ui/index.js"></script>
+		<script src="../../component/axios/axios.min.js"></script>
+
+		<script type="module">
+
+			import common from "../../component/common/commonData.js";
+			
+			var app = new Vue({
+				el: '#app',
+				data: function() {
+					return {
+						title: "",
+						user:'',
+						show:false,
+						typeList:[],
+						dataView:{},
+						dataStationView:{},
+						tableData: [],
+						userInfo:{},
+						showMapSel:false,
+						selObj:{},
+						selName:"",
+						showStationTable:false,
+						showStationEdit:false,
+						tableStationData:[],
+						setBtn:false,
+						picPath:common.urlMap.getPic
+					};
+				},
+				mounted() {
+
+				},
+				methods: {
+					onShow(){
+						
+					},onLoad(){
+						this.user = common.getUserInfo();
+						if(!this.user || this.user.type!=1){
+							location.href = '/NmBook/static/pages/catBook.html'
+						}
+						if(this.typeList.length  == 0 ){
+							this.getGroupList();
+						}else{
+							this.getData();
+						}
+					},onSubmit(){
+						this.getData();
+					},getData(){
+						let _this = this;
+						common.request({
+							data: {title: _this.title,validFlag:1},
+							url: common.urlMap.findNmBookList,
+							success: function(res) {
+								if(res.data.code == 200){
+									if(res.data.code==200){
+										_this.tableData = res.data.data;
+									}else{
+										common.err(res.data.msg);
+									}
+								}else {
+									common.err(res.data.msg);
+								}
+							},
+							fail: function(res) {
+								common.err("网络异常");
+							}
+						});
+					},
+					addBook(){
+						window.location.href = "bookEdit.html";
+					},
+					getBookType(type,flag){
+						switch (type) {
+							case 0:
+								return flag ? "通过" : "待审核";
+								break;
+							case 1:
+								return flag ? "下架" : "通过";
+								break;
+							case 2:
+								return flag ? "恢复" : "下架";
+								break;
+						}
+					},
+					getTypeName(typeId){
+						for(let i =0;i<this.typeList.length;i++){
+							if(this.typeList[i].id == typeId){
+								return this.typeList[i].groupName;
+							}
+						}
+						return "";
+					},
+					getGroupList(){
+						let _this = this;
+						common.request({
+							data: {
+								validFlag:1
+							},
+							url: common.urlMap.findNmBookGroupList,
+							success: function(res) {
+								if(res.data.code == 200){
+									_this.typeList = res.data.data;
+									_this.getData();
+								}else {
+									common.err(res.data.msg);
+								}
+							},
+							fail: function(res) {
+								common.err("网络异常");
+							}
+						})
+					},
+					showStationData(row){
+						this.dataStationView = row;
+						this.showStationEdit = true;
+						this.showStationTable = false;
+					},
+					showData(row) {
+						this.dataView = row;
+						this.show = true;
+					},
+					addPush(row){
+						this.dataView = row;
+						this.dataView["push"] = this.dataView["push"] ? 0:1;
+						this.editData();
+					},
+					toEdit(row){
+						window.location.href = "bookEdit.html?id="+row.id;
+					},
+					changeType(row){
+						this.dataView = row;
+						switch (row.type) {
+							case 0:
+								this.dataView.type = 1;
+								break;
+							case 1:
+								this.dataView.type = 2;
+								break;
+							case 2:
+								this.dataView.type = 1;
+								break;
+						}
+						this.editData();
+					},changeState(row){
+						this.dataView = row;
+						this.dataView["state"] = row.state==1?0:1;
+						this.editData();
+					}
+					,delData(row) {
+						this.dataView = row;
+						this.dataView["validFlag"] = 0;
+						this.editData();
+					},delStationData(row) {
+						this.dataStationView = row;
+						this.dataStationView["validFlag"] = 0;
+						this.editStationData();
+						this.showStationEdit = false;
+						this.showStationTable = false;
+					},editData(){
+						let _this = this;
+						let url = common.urlMap.editNmBook;
+						common.request({
+							url: url,
+							data: _this.dataView,
+							success: function(res) {
+								if(res.data.code==200){
+									common.success(res.data.msg)
+									_this.show = false;
+									_this.getData();
+								}else{
+									common.err(res.data.msg);
+								}
+							},
+							fail: function(res) {
+								common.err("网络异常");
+							}
+						})
+
+					},
+					addStationData(){
+						this.showStationTable = false;
+						this.showStationEdit = true;
+						this.dataStationView = {
+							title:"",
+							memo:"",
+							addX:this.dataView.addX,
+							addY:this.dataView.addY,
+							area:"",
+							rid:this.dataView.id
+						}
+					},
+					addData(){
+						this.show = true;
+						this.dataView = {
+							title:"",
+							memo:"",
+							num:1,
+							addX:common.addX,
+							addY:common.addY,
+							area:"",
+						}
+					}
+				}
+			});
+
+			window.onpageshow = app.onShow();
+			window.onload = app.onLoad();
+
+
+
+		</script>
+		<script>
+			//浏览器调用WebServiceAPI需要通过Jsonp的方式，此处定义了发送JOSNP请求的函数
+			function jsonp_request(url){
+				var script=document.createElement('script');
+				script.src=url;
+				document.body.appendChild(script);
+			}
+
+			//定义请求回调函数，在此拿到计算得到的路线，并进行绘制
+			 window.cb = function cb(ret){
+				var coords = ret.result.routes[0].polyline, pl = [];
+				//坐标解压（返回的点串坐标，通过前向差分进行压缩）
+				var kr = 1000000;
+				for (var i = 2; i < coords.length; i++) {
+					coords[i] = Number(coords[i - 2]) + Number(coords[i]) / kr;
+				}
+				//将解压后的坐标放入点串数组pl中
+				for (var i = 0; i < coords.length; i += 2) {
+					pl.push(new TMap.LatLng(coords[i], coords[i+1]));
+				}
+
+				display_polyline(pl)//显示路线
+
+			}
+
+			function display_polyline(pl){
+				//创建 MultiPolyline显示折线
+				var polylineLayer = new TMap.MultiPolyline({
+					id: 'polyline-layer', //图层唯一标识
+					map: map,//绘制到目标地图
+					//折线样式定义
+					styles: {
+						'style_blue': new TMap.PolylineStyle({
+							'color': '#3777FF', //线填充色
+							'width': 8, //折线宽度
+							'borderWidth': 5, //边线宽度
+							'borderColor': '#FFF', //边线颜色
+							'lineCap': 'round', //线端头方式
+						})
+					},
+					//折线数据定义
+					geometries: [
+						{
+							'id': 'pl_1',//折线唯一标识，删除时使用
+							'styleId': 'style_blue',//绑定样式名
+							'paths': pl
+						}
+					]
+				});
+			}
+		</script>
+		<style>
+			.main-view {
+				padding: 10px;
+			}
+			.long-text {
+				overflow:hidden;              //超出盒子宽度内容，便溢出隐藏
+				text-overflow:ellipsis;       //用...省略号显示
+				display:-webkit-box;          //将对象作为弹性伸缩盒子模型显示
+				-webkit-box-orient:vertical;  //从上到下垂直排列子元素
+				-webkit-line-clamp:3;
+				height: 100px;
+				width: 200px;
+			}
+			#mapContainer{
+				 /*地图(容器)显示大小*/
+				 width:800px;
+				 height:400px;
+			 }
+		</style>
+	</body>
+
+</html>

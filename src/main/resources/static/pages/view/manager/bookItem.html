@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8">
+		<title>详情作品</title>
+		<link rel="stylesheet" href="../../component/pear/css/pear.css" />
+		<link rel="stylesheet" href="../../component/element-ui/index.css">
+		<link rel="stylesheet" href="../../component/common/css/nmMain.css">
+	</head>
+
+	<body class="pear-container">
+		<div class="layui-card" id="app" style="padding: 30px;min-height: calc( 100vh - 40px );">
+			<div class="padding-10" style="background-color: #2d8cf0;color: white;">
+				<el-page-header  @back="goBack" :content="bookData.title" ></el-page-header>
+			</div>
+
+			<el-row :gutter="20" style="padding: 20px;padding-top: 30px;">
+				<el-col :span="12">
+					<div class="v-flex v-r-left">
+						<div>
+							<el-image :preview-src-list="[ getPic+ bookData.pic ]"
+									  style="width: 200px; height: 340px"
+									  :src="getPic+ bookData.pic"
+									  fit="contain"></el-image>
+							<div>
+								<i class="el-icon-s-opportunity" class="padding-10" :class="starFlag?'text-yellow':'text-blue'" @click="setCollect(0,starFlag)" style="margin-right: 20px;">{{starFlag?'已关注':'关注作者'}}</i>
+								<i class="el-icon-star-on" class=" padding-5" :class="collectFlag?'text-red':'text-blue'" @click="setCollect(1,collectFlag)">{{collectFlag?'已收藏':'收藏本书'}}</i>
+							</div>
+						</div>
+						<div class="padding-15">
+							<div class="padding-10"><span class="text-blue">书名：</span> {{bookData.title}}</div>
+							<div class="padding-10"><span class="text-blue">作者：</span>{{bookData.cname}} </div>
+							<div class="padding-10"><span class="text-blue">分类：</span>{{getTypeName(bookData.gid)}}</div>
+							<div class="padding-10"><span class="text-blue">状态：</span>{{bookData.state==1?'完结':'连载'}}</div>
+							<div class="padding-10"><span class="text-blue">收藏数：</span>{{bookData.collectNum}}</div>
+							<div class="padding-10"><span class="text-blue">阅读数：</span>{{bookData.hisNum}}</div>
+						</div>
+
+					</div>
+
+					<div  class="padding-10" style="border-top: 1px solid #2d8cf0;margin-top:20px; ">
+						<div class="v-flex v-r-between padding-20">
+							<div class="text-blue text-bold">简介</div>
+						</div>
+						<div class="padding-10">{{bookData.memo}}</div>
+
+						<el-image :preview-src-list="[ getPic+ bookData.pic2 ]"
+								  style="width: 100%;"
+								  :src="getPic+ bookData.pic2"
+								  fit="contain"></el-image>
+
+					</div>
+
+
+				</el-col>
+				<el-col :span="12" >
+					<div v-if="bookData.id" style="min-height: calc( 100vh - 40px );border-left: 1px solid #2d8cf0;">
+						<div class="v-flex v-r-between padding-10" style="padding-left: 20px;">
+							<div class="text-blue text-bold">章节列表</div>
+						</div>
+						<div class="padding-20">
+							<div v-for="item in chapterList" class="v-flex margin-b v-r-between view-shadow view-radius-m padding-15">
+								<div>{{item.title}}</div>
+								<div style="max-width: 50%" class="text-ellipsis text-gray">{{item.memo}}</div>
+								<div style="min-width: 45px;" class="text-blue hover-green" @click="playAudio(item)"><i class="el-icon-video-play"></i>播放</div>
+							</div>
+
+						</div>
+					</div>
+				</el-col>
+			</el-row>
+
+			<el-dialog :title="chapterData.title" :visible.sync="showChapter" :show-close="false">
+				<div>
+					<div class="padding-5">
+						<audio id="audio" v-if="chapterData.voice" controls>
+							<source :src="getAudio+chapterData.voice" :type="setType(chapterData.voice)">
+						</audio>
+						<speech-view v-else :text="chapterData.content"></speech-view>
+					</div>
+					<div class="padding-15">
+						<span class="text-blue">简介：</span>{{chapterData.memo}}
+					</div>
+				</div>
+				<div slot="footer" class="dialog-footer">
+					<el-button @click="close">关闭</el-button>
+				</div>
+			</el-dialog>
+
+		</div>
+
+<!--		<template id="speechView">-->
+<!--		    <div class="text-big text-blue">-->
+<!--		        <i v-if="!play" class="el-icon-video-play hover-green hover-big" @click="speechText" style="height: 30px;line-height: 30px;"></i>-->
+<!--		        <i v-if="play" class="el-icon-video-pause text-red hover-green hover-big" @click="pauseSpeech" style="height: 30px;line-height: 30px;"></i>-->
+<!--		    </div>-->
+<!--		</template>-->
+
+		<template id="speechView">
+			<div>
+				<div class="margin-20 view-shadow v-flex v-r-between v-c-center" style="border-radius: 34px; width: 300px;background-color: white;padding: 15px 25px;">
+					<div class="text-blue text-big" style="width: 50px;">
+						<i v-if="!play" class="el-icon-video-play hover-green hover-big" @click="speechText" style="height: 38px;line-height: 38px;"></i>
+						<i v-if="play" class="el-icon-video-pause text-red hover-green hover-big" @click="pauseSpeech" style="height: 38px;line-height: 38px;"></i>
+					</div>
+					<div style="width: 200px;">
+						<el-slider @change="changeIndex" :max="speechList.length" :step="1" v-model="speechIndex" :format-tooltip="formatTooltip"></el-slider>
+					</div>
+					<div class="text-black v-center" style="height: 38px;line-height: 38px;width: 50px;">
+						{{formatTooltip(speechIndex)}}
+					</div>
+				</div>
+			</div>
+		</template>
+
+		<script src="../../component/vue/vue.js"></script>
+		<script src="../../component/element-ui/index.js"></script>
+		<script src="../../component/axios/axios.min.js"></script>
+		<script>
+			var map;
+		</script>
+		<script type="module">
+
+			import common from "../../component/common/commonData.js";
+
+			const speechView = {
+				template: '#speechView',
+				props: {
+					// 2.提供一些默认值, 以及必传值
+					text: {
+						type: String,
+						default: "文本缺失，无法朗读",
+						required: true
+					}
+				},
+				data() {
+					return {
+						speechList:[],
+						speechIndex:0,
+						pause:false,
+						play:false
+					}
+				},mounted(){
+					this.setText();
+				},watch:{
+					text(){
+						this.setText();
+					}
+				},
+				methods: {
+					setText(){
+						this.speechList= [];
+						let text = this.text;
+						text = text.replace(/\s/g,"");
+						text = text.replace(/[，。？：；！—、,.?:!]/g,'&&&');
+						let speechList = text.split("&&&");
+						for(let i =0;i<speechList.length;i++){
+							let text = speechList[i];
+							if(text.length>0){
+								this.speechList.push(text);
+							}
+						}
+						this.speechList.push("本章结束,音频来源，糯米听书。");
+					},formatTooltip(val){
+						return (val/this.speechList.length*100).toFixed(0)+"%";
+					},changeIndex(val){
+						window.speechSynthesis.cancel();
+						this.speechIndex = val;
+						this.speechText();
+					},pauseSpeech(){
+						this.pause = true;
+						this.play = false;
+						window.speechSynthesis.pause();
+					},speechText(){
+						if(this.pause){
+							window.speechSynthesis.resume();
+							this.pause = false;
+							return
+						}
+						this.play = true;
+						let _this = this;
+						if(this.speechIndex != this.speechList.length - 1){
+							this.speechIndex == 0;
+						}
+						var utterThis = new SpeechSynthesisUtterance();
+						utterThis.text = this.speechList[this.speechIndex];
+						utterThis.lang = 'zh';//汉语fvoiceURI
+						utterThis.rate = 1;//语速
+						utterThis.voiceURI = 'Ting-Ting';
+						let voices = window.speechSynthesis.getVoices();
+						utterThis.voice = voices.filter(function(voice) {
+							return voice.localService == true && voice.lang == "zh-CN";
+						})[0];
+						window.speechSynthesis.speak(utterThis);
+
+						utterThis.onend = (event) => {  //语音合成结束时候的回调
+							if(_this.speechIndex != _this.speechList.length - 1){
+								_this.speechIndex++;
+								_this.speechText();
+							}else{
+								_this.speechIndex++;
+								return;
+							}
+						}
+
+					}
+				}
+			}
+
+			var app = new Vue({
+				components: {
+					speechView:speechView
+				},
+				el: '#app',
+				data: function() {
+					return {
+						user:'',
+						typeList:[],
+						selId:114514,
+						bookData:{title:""},
+						chapterList:[],
+						chapterData:{
+							title:"",
+							memo:"",
+							content:"",
+							voice:"",
+							state:0
+						},
+						showChapter:false,
+						fileList:[],
+						fileName:"",
+						uploadUrl:common.urlMap.uploadFile,
+						getPic:common.urlMap.getPic,
+						getAudio:common.urlMap.getAudio,
+						collectFlag:false,
+						starFlag:false
+					};
+				},
+				mounted() {
+
+				},
+				methods: {
+					onShow(){
+						
+					},onLoad(){
+						this.user = common.getUserInfo();
+						this.getGroupList();
+
+					},getUserCollect(){
+						let _this = this;
+						common.request({
+							data: {
+								validFlag:1,
+								bid:this.bookData.id,
+								creater:this.user.uid,
+								type:1
+							},
+							url: common.urlMap.findNmBookCollectList,
+							success: function(res) {
+								if(res.data.code == 200){
+									if(res.data.data.length>0){
+										_this.collectFlag = true;
+									}else{
+										_this.collectFlag = false;
+									}
+								}else {
+									//common.err(res.data.msg);
+								}
+							},
+							fail: function(res) {
+								//common.err("网络异常");
+							}
+						})
+
+						common.request({
+							data: {
+								validFlag:1,
+								uid:this.bookData.creater,
+								creater:this.user.uid,
+								type:0
+							},
+							url: common.urlMap.findNmBookCollectList,
+							success: function(res) {
+								if(res.data.code == 200){
+									if(res.data.data.length>0){
+										_this.starFlag = true;
+									}else{
+										_this.starFlag = false;
+									}
+								}else {
+									//common.err(res.data.msg);
+								}
+							},
+							fail: function(res) {
+								//common.err("网络异常");
+							}
+						})
+					},
+					setCollect(type,bool){
+						let _this = this;
+						common.request({
+							data: {
+								type:type,
+								uid:this.bookData.creater,
+								bid:this.bookData.id,
+								creater:this.user.uid,
+								bookName:this.bookData.title,
+								validFlag:bool?0:1,
+								uname:this.bookData.cname
+							},
+							url: type == 2 ? common.urlMap.addNmBookCollect : common.urlMap.editNmBookCollect,
+							success: function(res) {
+								if(res.data.code == 200){
+									if(type!=2){
+										common.success(res.data.msg);
+									}
+									_this.getUserCollect();
+								}else {
+									if(type!=2){
+										common.err(res.data.msg);
+									}
+								}
+							},
+							fail: function(res) {
+								common.err("网络异常");
+							}
+						})
+					}
+					,onSubmit(){
+						this.getData();
+					},goBack(){
+						window.location.href="javascript:history.go(-1)";
+					},playAudio(item){
+						this.setCollect(2,false);
+						this.showChapter=true;
+						this.chapterData=item;
+					},
+					setType(fileName){
+						let arr =  fileName.split(".");
+						let name = arr[arr.length - 1].toLowerCase();
+						return  name == 'mp3' ?'audio/mpeg':('audio/'+name)
+					},
+					getBookData(bid){
+						let _this = this;
+						common.request({
+							data: {
+								validFlag:1,
+								id:bid
+							},
+							url: common.urlMap.findNmBook,
+							success: function(res) {
+								if(res.data.code == 200){
+									_this.bookData = res.data.data;
+									_this.getChapterList();
+									_this.getUserCollect();
+								}else {
+									common.err(res.data.msg);
+								}
+							},
+							fail: function(res) {
+								common.err("网络异常");
+							}
+						})
+					},getChapterList(){
+						let _this = this;
+						common.request({
+							data: {
+								validFlag:1,
+								bid:this.bookData.id
+							},
+							url: common.urlMap.findNmBookChapterList,
+							success: function(res) {
+								if(res.data.code == 200){
+									_this.chapterList = res.data.data;
+								}else {
+									common.err(res.data.msg);
+								}
+							},
+							fail: function(res) {
+								common.err("网络异常");
+							}
+						})
+					},
+					getTypeName(typeId){
+						for(let i =0;i<this.typeList.length;i++){
+							if(this.typeList[i].id == typeId){
+								return this.typeList[i].groupName;
+							}
+						}
+						return "";
+					},
+					getGroupList(){
+						let _this = this;
+						common.request({
+							data: {
+								validFlag:1
+							},
+							url: common.urlMap.findNmBookGroupList,
+							success: function(res) {
+								if(res.data.code == 200){
+									_this.typeList = res.data.data;
+									let bid = common.getUrlParam("id");
+									if(bid){
+										_this.getBookData(bid);
+									}
+								}else {
+									common.err(res.data.msg);
+								}
+							},
+							fail: function(res) {
+								common.err("网络异常");
+							}
+						})
+					},close(){
+						if(this.chapterData.voice){
+							var audioEle = document.getElementById("audio");
+							audioEle.play();	//播放
+							audioEle.pause();
+						}else{
+							window.speechSynthesis.cancel();
+						}
+						this.showChapter = false;
+					}
+				}
+			});
+
+			window.onpageshow = app.onShow();
+			window.onload = app.onLoad();
+		</script>
+
+		<style>
+			.main-view {
+				padding: 10px;
+			}
+			.long-text {
+				overflow:hidden;              //超出盒子宽度内容，便溢出隐藏
+				text-overflow:ellipsis;       //用...省略号显示
+				display:-webkit-box;          //将对象作为弹性伸缩盒子模型显示
+				-webkit-box-orient:vertical;  //从上到下垂直排列子元素
+				-webkit-line-clamp:3;
+				height: 100px;
+				width: 200px;
+			}
+			#mapContainer{
+				 /*地图(容器)显示大小*/
+				 width:800px;
+				 height:400px;
+			 }
+			.el-page-header__content{
+				color: white;
+			}
+		</style>
+	</body>
+
+</html>
