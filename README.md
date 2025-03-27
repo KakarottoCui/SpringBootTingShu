@@ -1,7 +1,7 @@
 # SpringBootTingShu
 基于JAVA SpringBoot和Vue小说在线听书网站设计
 
-演示视频链接：https://live.csdn.net/v/333812
+演示视频链接：https://www.bilibili.com/video/BV14z4y1F79Q/
 
 实现的功能：
 
